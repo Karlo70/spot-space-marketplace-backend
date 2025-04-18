@@ -1,8 +1,10 @@
 // src/users/users.controller.ts
-import { Controller, Get, Param, Post, Body, Patch } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Patch, Query, ParseUUIDPipe } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { GetAllUsersDto } from './dto/get-all-user.dto';
+import { ParamIdDto } from '../../shared/dto/param-id.dto';
 
 @Controller('users')
 export class UsersController {
@@ -13,13 +15,18 @@ export class UsersController {
     return this.usersService.create(dto);
   }
 
+  @Get()
+  findAll(@Query() query: GetAllUsersDto) {
+    return this.usersService.listUsers(query);
+  }
+
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findById(id);
+  findOne(@Param() params: ParamIdDto) {
+    return this.usersService.findById(params.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(id, dto);
+  update(@Param() params: ParamIdDto, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(params.id, dto);
   }
 }
