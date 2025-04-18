@@ -15,15 +15,15 @@ export class UsersService {
     return this.userRepo.save(user);
   }
 
-  async findById(id: string): Promise<User> {
+  async findById(id: string) {
     return this.userRepo.findOne({ where: { id } });
   }
 
-  async findByEmail(email: string): Promise<User> {
+  async findByEmail(email: string){
     return this.userRepo.findOne({ where: { email }, select: ['id', 'password_hash'] });
   }
 
-  async update(id: string, dto: UpdateUserDto): Promise<User> {
+  async update(id: string, dto: UpdateUserDto) {
     await this.userRepo.update(id, dto);
     return this.findById(id);
   }
