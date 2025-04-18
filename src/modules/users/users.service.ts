@@ -1,26 +1,38 @@
+// src/users/users.service.ts
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User, UserRole } from './entities/user.entity';
+import { CreateUserDto} from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(@InjectRepository(User) private readonly userRepo: Repository<User>) {}
+
+  async create(dto: CreateUserDto): Promise<User> {
+    const user = this.userRepo.create({ ...dto, password_hash: dto.password });
+    return this.userRepo.save(user);
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findById(id: string): Promise<User> {
+    return this.userRepo.findOne({ where: { id } });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findByEmail(email: string): Promise<User> {
+    return this.userRepo.findOne({ where: { email }, select: ['id', 'password_hash'] });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, dto: UpdateUserDto): Promise<User> {
+    await this.userRepo.update(id, dto);
+    return this.findById(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async softDelete(id: string) {
+    await this.userRepo.softDelete(id);
+  }
+
+  async listUsersByRole(role: UserRole) {
+    return this.userRepo.find({ where: { role } });
   }
 }
