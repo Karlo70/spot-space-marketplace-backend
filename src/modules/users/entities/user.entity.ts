@@ -1,5 +1,7 @@
 // src/users/entities/user.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { UserProfile } from 'src/modules/user-profiles/entities/user-profile.entity';
+import { UserProfilesController } from 'src/modules/user-profiles/user-profiles.controller';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
 
 export enum UserRole {
   ADVERTISER = 'advertiser',
@@ -53,6 +55,10 @@ export class User {
 
   @Column({ default: false })
   two_factor_enabled: boolean;
+
+  @OneToOne(() => UserProfile, profile => profile.user, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'profile_id' })
+  profile: UserProfile;
 
   @CreateDateColumn()
   created_at: Date;
