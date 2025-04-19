@@ -1,31 +1,36 @@
 // src/users/users.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, MoreThanOrEqual, LessThanOrEqual, Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { GetAllUsersDto
+import {
+  GetAllUsersDto
 
- } from './dto/get-all-user.dto';
+} from './dto/get-all-user.dto';
+import { IPaginationOptions, paginate, Pagination } from 'nestjs-typeorm-paginate';
+
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private userRepo: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private readonly userRepo: Repository<User>
+  ) { }
 
   async create(dto: CreateUserDto): Promise<User> {
     const user = this.userRepo.create({ ...dto, password_hash: dto.password });
     return this.userRepo.save(user);
   }
 
-  async findById(id: string): Promise<User> {
+  async findById(id: string) {
     return this.userRepo.findOne({ where: { id } });
   }
 
-  async findByEmail(email: string): Promise<User> {
+  async findByEmail(email: string) {
     return this.userRepo.findOne({ where: { email }, select: ['id', 'password_hash'] });
   }
 
-  async update(id: string, dto: UpdateUserDto): Promise<User> {
+  async update(id: string, dto: UpdateUserDto) {
     await this.userRepo.update(id, dto);
     return this.findById(id);
   }
@@ -34,21 +39,23 @@ export class UsersService {
     await this.userRepo.softDelete(id);
   }
 
-  async listUsers(filter: GetAllUsersDto): Promise<User[]> {
-    const { role, status, search, createdFrom, createdTo } = filter;
+  async listUsers(filter: GetAllUsersDto): Promise<Pagination<User>> {
+    const { role, status, search, createdFrom, createdTo, page, limit } = filter;
 
-    const where: any = {};
-    if (role) where.role = role;
-    if (status) where.status = status;
-    if (search) {
-      where.full_name = Like(`%${search}%`);
-    }
-    if (createdFrom || createdTo) {
-      where.created_at = {};
-      if (createdFrom) where.created_at[MoreThanOrEqual] = createdFrom;
-      if (createdTo) where.created_at[LessThanOrEqual] = createdTo;
-    }
+    const queryBuilder = this.userRepo.createQueryBuilder('user');
 
-    return this.userRepo.find({ where });
+    if (role) queryBuilder.andWhere('user.role = :role', { role });
+    if (status) queryBuilder.andWhere('user.status = :status', { status });
+    if (search) queryBuilder.andWhere('user.full_name ILIKE :search', { search: `%${search}%` });
+    if (createdFrom) queryBuilder.andWhere('user.created_at >= :createdFrom', { createdFrom });
+    if (createdTo) queryBuilder.andWhere('user.created_at <= :createdTo', { createdTo });
+
+    queryBuilder.orderBy('user.created_at', 'DESC');
+
+    const options: IPaginationOptions = {
+      page: page || 1,
+      limit: limit || 10,
+    };
+    return paginate<User>(queryBuilder, options);
   }
 }

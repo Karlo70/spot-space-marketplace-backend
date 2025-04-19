@@ -5,10 +5,12 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetAllUsersDto } from './dto/get-all-user.dto';
 import { ParamIdDto } from '../../shared/dto/param-id.dto';
+import { Pagination } from 'nestjs-typeorm-paginate';
+import { User } from './entities/user.entity';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   create(@Body() dto: CreateUserDto) {
@@ -16,7 +18,7 @@ export class UsersController {
   }
 
   @Get()
-  findAll(@Query() query: GetAllUsersDto) {
+  async findAll(@Query() query: GetAllUsersDto): Promise<Pagination<User>> {
     return this.usersService.listUsers(query);
   }
 
