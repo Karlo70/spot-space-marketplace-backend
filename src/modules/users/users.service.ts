@@ -10,28 +10,19 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import { ValidationException } from '@nestjs/common';
 import { GetAllUserDto } from './dto/get-all-user.dto';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 import { paginate } from 'nestjs-typeorm-paginate';
 import { IsNull, Not } from 'typeorm';
-import { UserRole } from './entities/user-role.entity';
-import { validateOneUser, validateUser } from './utils/user-validation';
-import { countriesRepository } from './repositories/countries.repository';
-import { companyTypesRepository } from './repositories/company-types.repository';
-import { notificationsService } from './services/notifications.service';
+import { UserRole } from './entities/user.entity';
+import { ValidationException } from 'utils/validation-exception-formatter';
+import { ParamIdDto } from '../shared/dtos/paramId.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
-    @Inject(countriesRepository)
-    private readonly countriesRepository: Repository<User>,
-    @Inject(companyTypesRepository)
-    private readonly companyTypesRepository: Repository<User>,
-    @Inject(notificationsService)
-    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createUserDto: CreateUserDto, currentUser: User) {
@@ -51,13 +42,13 @@ export class UsersService {
 
     const user = this.usersRepository.create({ ...createUserDto });
 
-    const stripeCustomer = await this.stripe.customers.create({
-      email: createUserDto.email,
-      name: `${createUserDto.first_name} ${createUserDto.last_name}`,
-    });
+    // const stripeCustomer = await this.stripe.customers.create({
+    //   email: createUserDto.email,
+    //   name: `${createUserDto.first_name} ${createUserDto.last_name}`,
+    // });
 
     await user.save();
-    await this.notificationsService.createUserNotificationSetting(user);
+    // await this.notificationsService.createUserNotificationSetting(user);
 
     const { password, ...userData } = user;
     return userData;
@@ -104,27 +95,21 @@ export class UsersService {
     }
 
     const paginationOptions: IPaginationOptions = {
-      page: page,
-      limit: per_page,
+      page: page ?? 1,
+      limit: per_page ?? 10,
     };
 
     return await paginate<User>(query, paginationOptions);
   }
 
-  async findOne({ id }: ParamIdDto, currentUser: User) {
+  async findOne(id: ParamIdDto, currentUser: User) {
     const user = await this.usersRepository.findOne({
-      where: { id },
-      relations: {
-        profile_image: true,
-        banner_image: true,
-        country: true,
-        company_type: true,
-      },
+      where: id,
     });
 
     if (!user) throw new NotFoundException('Organization not found');
 
-    validateOneUser(currentUser, user);
+    // validateOneUser(currentUser, user);
 
     return user;
   }
@@ -140,7 +125,7 @@ export class UsersService {
 
     if (!user) throw new NotFoundException('User not found');
 
-    validateUser(id, currentUser, updateUserDto, user);
+    // svalidateUser(id, currentUser, updateUserDto, user);
 
     if (updateUserDto?.email) {
       const user = await this.usersRepository.findOne({
@@ -148,48 +133,6 @@ export class UsersService {
       });
 
       if (user) throw new NotFoundException('this email already exist');
-    }
-
-    if (
-      updateUserDto.country_id &&
-      updateUserDto.country_id !== user?.country?.id
-    ) {
-      const country = await this.countriesRepository.findOne({
-        where: { id: updateUserDto.country_id },
-      });
-
-      if (!country) throw new NotFoundException('Country not found');
-
-      user.country = country;
-    }
-
-    if (
-      user.country &&
-      typeof updateUserDto.country_id === 'string' &&
-      updateUserDto.country_id.length < 1
-    ) {
-      user.country = null;
-    }
-
-    if (
-      updateUserDto.company_type_id &&
-      updateUserDto.company_type_id !== user?.company_type?.id
-    ) {
-      const companyType = await this.companyTypesRepository.findOne({
-        where: { id: updateUserDto.company_type_id },
-      });
-
-      if (!companyType) throw new NotFoundException('Company Type not found');
-
-      user.company_type = companyType;
-    }
-
-    if (
-      user.company_type &&
-      typeof updateUserDto.company_type_id === 'string' &&
-      updateUserDto.company_type_id.length < 1
-    ) {
-      user.company_type = null;
     }
 
     Object.assign(user, updateUserDto);
@@ -202,6 +145,8 @@ export class UsersService {
       where: { id: currentUser.id, deleted_at: IsNull() },
     });
 
+    if (!user) throw new NotFoundException('User not found');
+
     if (user?.role === UserRole.SUPER_ADMIN)
       throw new BadRequestException(
         `A Super Admin cannot delete their own account.`,
@@ -209,21 +154,5 @@ export class UsersService {
 
     user.deleted_at = new Date();
     await user.save();
-  }
-
-  findAll() {
-    return `This action returns all users`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
   }
 }

@@ -27,7 +27,8 @@ import { SharedModule } from './modules/shared/shared.module';
 @Module({
   imports: [
     UsersModule, 
-    SharedModule, UserProfilesModule, UserPreferencesModule, UserActivityModule, UserAnalyticsModule, UserEngagementModule, UserGroupsModule, UserGroupMembershipModule, UserProfileMetricsModule, AdSpacesModule, AdCreativesModule, CampaignsModule, AdPerformanceModule, TargetAudiencesModule, AdminDashboardMetricsModule, AuditLogsModule, FraudDetectionModule, RegulatoryComplianceModule, ConsentManagementModule, AccessControlListModule, DataRetentionPolicyModule
+    SharedModule,
+     UserProfilesModule, UserPreferencesModule, UserActivityModule, UserAnalyticsModule, UserEngagementModule, UserGroupsModule, UserGroupMembershipModule, UserProfileMetricsModule, AdSpacesModule, AdCreativesModule, CampaignsModule, AdPerformanceModule, TargetAudiencesModule, AdminDashboardMetricsModule, AuditLogsModule, FraudDetectionModule, RegulatoryComplianceModule, ConsentManagementModule, AccessControlListModule, DataRetentionPolicyModule
   ],
   controllers: [AppController],
   providers: [AppService],
