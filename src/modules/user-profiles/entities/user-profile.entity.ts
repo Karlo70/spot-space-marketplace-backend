@@ -1,40 +1,29 @@
-// src/user-profiles/entities/user-profile.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('user_profiles')
 export class UserProfile {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @OneToOne(() => User, user => user.profile, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @ManyToOne(() => User, user => user.id)
   user: User;
 
+  @Column()
+  full_name: string;
+
   @Column({ nullable: true })
+  profile_picture: string;
+
+  @Column()
   address: string;
 
-  @Column({ nullable: true })
-  city: string;
+  @Column()
+  phone_number: string;
 
-  @Column({ nullable: true })
-  country: string;
-
-  @Column({ nullable: true })
-  postal_code: string;
-
-  @Column({ nullable: true })
-  bio: string;
-
-  @Column({ nullable: true })
-  website: string;
-
-  @Column({ type: 'jsonb', nullable: true })
-  preferences: any;
-
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at: Date;
 }

@@ -1,34 +1,63 @@
-// src/users/users.controller.ts
-import { Controller, Get, Param, Post, Body, Patch, Query, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { GetAllUsersDto } from './dto/get-all-user.dto';
-import { ParamIdDto } from '../../shared/dto/param-id.dto';
-import { Pagination } from 'nestjs-typeorm-paginate';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
+import { IResponse } from '../shared/interfaces/response.interface';
+import { AuthenticationGuard } from '../shared/guards/authentication.guard';
+import { RolesGuard } from '../shared/guards/roles.guard';
+import { RolesDecorator } from '../shared/decorators/roles.decorator';
+import { CurrentUser } from '../shared/decorators/current-user.decorator';
+import { ParamIdDto } from '../shared/dtos/paramId.dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  async create(@Body() createUserDto: CreateUserDto): Promise<IResponse> {
+    const user = await this.usersService.create(createUserDto);
+    return {
+      message: 'User created successfully',
+      details: user,
+    };
   }
 
   @Get()
-  async findAll(@Query() query: GetAllUsersDto): Promise<Pagination<User>> {
-    return this.usersService.listUsers(query);
+  @UseGuards(AuthenticationGuard, RolesGuard)
+  @RolesDecorator(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async findAll(@CurrentUser() user: User): Promise<IResponse> {
+    const users = await this.usersService.findAll();
+    return {
+      message: 'Users retrieved successfully',
+      details: users,
+    };
   }
 
   @Get(':id')
-  findOne(@Param() params: ParamIdDto) {
-    return this.usersService.findById(params.id);
+  @UseGuards(AuthenticationGuard, RolesGuard)
+  @RolesDecorator(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async findOne(@Param() paramDto: ParamIdDto, @CurrentUser() currentUser: User): Promise<IResponse> {
+    const user = await this.usersService.findOne(paramDto.id);
+    return {
+      message: 'User retrieved successfully',
+      details: user,
+    };
   }
 
   @Patch(':id')
-  update(@Param() params: ParamIdDto, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(params.id, dto);
+  async update(@Param() paramDto: ParamIdDto, @Body() updateUserDto: Partial<CreateUserDto>): Promise<IResponse> {
+    const user = await this.usersService.update(paramDto.id, updateUserDto);
+    return {
+      message: 'User updated successfully',
+      details: user,
+    };
+  }
+
+  @Delete(':id')
+  async remove(@Param() paramDto: ParamIdDto): Promise<IResponse> {
+    await this.usersService.remove(paramDto.id);
+    return {
+      message: 'User removed successfully',
+    };
   }
 }

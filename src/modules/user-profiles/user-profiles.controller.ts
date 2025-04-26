@@ -1,32 +1,54 @@
-// src/user-profiles/user-profiles.controller.ts
-import { Controller, Get, Post, Patch, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { UserProfilesService } from './user-profiles.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
-import { ParamIdDto } from 'src/shared/dto/param-id.dto';
-import { GetAllUserProfilesDto } from './dto/get-all-user-profiles.dto';
-import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { UserProfile } from './entities/user-profile.entity';
+import { IResponse } from '../shared/interfaces/response.interface';
 
 @Controller('user-profiles')
 export class UserProfilesController {
-  constructor(private readonly service: UserProfilesService) {}
+  constructor(private readonly userProfilesService: UserProfilesService) {}
 
-  @Post(':userId')
-  create(@Param() params: ParamIdDto, @Body() dto: CreateUserProfileDto) {
-    return this.service.create(params.id, dto);
+  @Post()
+  async create(@Body() createUserProfileDto: CreateUserProfileDto): Promise<IResponse> {
+    const userProfile = await this.userProfilesService.create(createUserProfileDto);
+    return {
+      message: 'UserProfile created successfully',
+      details: userProfile,
+    };
   }
 
   @Get()
-  findAll(@Query() query: GetAllUserProfilesDto) {
-    return this.service.findAll(query);
+  async findAll(): Promise<IResponse> {
+    const userProfiles = await this.userProfilesService.findAll();
+    return {
+      message: 'UserProfiles retrieved successfully',
+      details: userProfiles,
+    };
   }
 
   @Get(':id')
-  findOne(@Param() params: ParamIdDto) {
-    return this.service.findById(params.id);
+  async findOne(@Param('id') id: string): Promise<IResponse> {
+    const userProfile = await this.userProfilesService.findOne(+id);
+    return {
+      message: 'UserProfile retrieved successfully',
+      details: userProfile,
+    };
   }
 
   @Patch(':id')
-  update(@Param() params: ParamIdDto, @Body() dto: UpdateUserProfileDto) {
-    return this.service.update(params.id, dto);
+  async update(@Param('id') id: string, @Body() updateUserProfileDto: Partial<CreateUserProfileDto>): Promise<IResponse> {
+    const userProfile = await this.userProfilesService.update(+id, updateUserProfileDto);
+    return {
+      message: 'UserProfile updated successfully',
+      details: userProfile,
+    };
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<IResponse> {
+    await this.userProfilesService.remove(+id);
+    return {
+      message: 'UserProfile removed successfully',
+    };
   }
 }

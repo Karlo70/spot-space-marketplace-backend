@@ -1,41 +1,42 @@
-// src/user-profiles/user-profiles.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { paginate, Pagination } from 'nestjs-typeorm-paginate';
-import { UserProfile } from './entities/user-profile.entity';
+import { Repository } from 'typeorm';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
-import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
-import { GetAllUserProfilesDto } from './dto/get-all-user-profiles.dto';
+import { UserProfile } from './entities/user-profile.entity';
 
 @Injectable()
 export class UserProfilesService {
-  constructor(@InjectRepository(UserProfile) private repo: Repository<UserProfile>) {}
+  constructor(
+    @InjectRepository(UserProfile)
+    private readonly userProfilesRepository: Repository<UserProfile>,
+  ) {}
 
-  create(userId: string, dto: CreateUserProfileDto) {
-    return this.repo.save({ ...dto, user: { id: userId } });
+  async create(createUserProfileDto: CreateUserProfileDto): Promise<UserProfile> {
+    const userProfile = this.userProfilesRepository.create(createUserProfileDto);
+    return this.userProfilesRepository.save(userProfile);
   }
 
-  async update(id: string, dto: UpdateUserProfileDto) {
-    await this.repo.update(id, dto);
-    return this.repo.findOne({ where: { id }, relations: ['user'] });
+  async findAll(): Promise<UserProfile[]> {
+    return this.userProfilesRepository.find();
   }
 
-  async findById(id: string) {
-    return this.repo.findOne({ where: { id }, relations: ['user'] });
+  async findOne(id: number): Promise<UserProfile> {
+    const userProfile = await this.userProfilesRepository.findOne(id);
+    if (!userProfile) {
+      throw new NotFoundException('UserProfile not found');
+    }
+    return userProfile;
   }
 
-  async findAll(filter: GetAllUserProfilesDto): Promise<Pagination<UserProfile>> {
-    const { city, country, search, page, limit } = filter;
+  async update(id: number, updateUserProfileDto: Partial<CreateUserProfileDto>): Promise<UserProfile> {
+    await this.userProfilesRepository.update(id, updateUserProfileDto);
+    return this.findOne(id);
+  }
 
-    const qb = this.repo.createQueryBuilder('profile');
-
-    if (city) qb.andWhere('profile.city ILIKE :city', { city: `%${city}%` });
-    if (country) qb.andWhere('profile.country ILIKE :country', { country: `%${country}%` });
-    if (search) qb.andWhere('profile.bio ILIKE :search OR profile.website ILIKE :search', { search: `%${search}%` });
-
-    qb.orderBy('profile.created_at', 'DESC');
-
-    return paginate<UserProfile>(qb, { page, limit });
+  async remove(id: number): Promise<void> {
+    const result = await this.userProfilesRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('UserProfile not found');
+    }
   }
 }
